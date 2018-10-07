@@ -3,29 +3,34 @@ module ColorLS
     def initialize(input, all: false, report: false, sort: false, show: false,
       mode: nil, git_status: false, almost_all: false, colors: [], group: nil,
       reverse: false, hyperlink: false)
-      @input        = File.absolute_path(input)
-      @count        = {folders: 0, recognized_files: 0, unrecognized_files: 0}
-      @all          = all
-      @almost_all   = almost_all
-      @hyperlink    = hyperlink
-      @report       = report
-      @sort         = sort
-      @reverse      = reverse
-      @group        = group
-      @show         = show
-      @one_per_line = mode == :one_per_line
-      @long         = mode == :long
-      @tree         = mode == :tree
+      @input         = File.absolute_path(input)
+      @count         = {folders: 0, recognized_files: 0, unrecognized_files: 0}
+      @all           = all
+      @almost_all    = almost_all
+      @hyperlink     = hyperlink
+      @report        = report
+      @sort          = sort
+      @reverse       = reverse
+      @group         = group
+      @show          = show
+      @one_per_line  = mode == :one_per_line
+      @long          = mode == :long
+      @tree          = mode == :tree
+      @folder_colors = {}
+
       process_git_status_details(git_status)
 
-      @screen_width = IO.console.winsize[1]
-      @screen_width = 80 if @screen_width.zero?
-
+      init_screen_width
       init_colors colors
 
       @contents   = init_contents(input)
       @max_widths = @contents.map { |c| c.name.length }
       init_icons
+    end
+
+    def init_screen_width
+      @screen_width = IO.console.winsize[1]
+      @screen_width = 80 if @screen_width.zero?
     end
 
     def ls
@@ -66,6 +71,8 @@ module ColorLS
         filter_hidden_contents
 
         @contents.map! { |e| FileInfo.new(File.join(path, e), link_info = @long) }
+
+        folder_color_by_suffix
 
         filter_contents if @show
         sort_contents   if @sort
@@ -318,10 +325,27 @@ module ColorLS
       print "\n"
     end
 
+    def folder_color_by_suffix
+      dirs, = @contents.partition(&:directory?)
+
+      dirs_grouped_by_suffix = dirs.group_by { |dir| dir.name[/.+_([^_])/, 1] }
+      dirs_grouped_by_suffix.delete(nil)
+
+      suffix_count = 0
+      dirs_grouped_by_suffix.values.each do |grouped_dirs|
+        suffix_count = (suffix_count + 1) % 6
+        color = "dir_suffix_#{suffix_count}".to_sym
+        colors = [color] * grouped_dirs.length
+
+        names_hash = grouped_dirs.map { |dir| dir.name.to_sym }.zip(colors).to_h
+        @folder_colors.merge!(names_hash)
+      end
+    end
+
     def options(content)
       if content.directory?
         key = content.name.to_sym
-        color = @colors[:dir]
+        color = @colors[@folder_colors[key]] || @colors[:dir]
         return [:folder, color, :folders] unless @all_folders.include?(key)
         key = @folder_aliases[key] unless @folder_keys.include?(key)
         return [key, color, :folders]

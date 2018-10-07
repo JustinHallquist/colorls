@@ -2,6 +2,11 @@
 unrecognized_file: gold
 recognized_file:   lime
 dir:               dodgerblue
+dir_suffix_1:      royalblue
+dir_suffix_2:      cornflower
+dir_suffix_3:      lightskyblue
+dir_suffix_4:      skyblue
+dir_suffix_5:      deepskyblue
 
 # Link
 dead_link: red
