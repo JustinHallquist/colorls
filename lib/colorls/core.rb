@@ -333,9 +333,12 @@ module ColorLS
 
       suffix_count = 0
       dirs_grouped_by_suffix.values.each do |grouped_dirs|
+        dirs_count = grouped_dirs.length
+        next if dirs_count < 2
+
         suffix_count = (suffix_count + 1) % 6
         color = "dir_suffix_#{suffix_count}".to_sym
-        colors = [color] * grouped_dirs.length
+        colors = [color] * dirs_count
 
         names_hash = grouped_dirs.map { |dir| dir.name.to_sym }.zip(colors).to_h
         @folder_colors.merge!(names_hash)
